@@ -14,7 +14,7 @@ echo "🚀 Setting up GitHub repository for restech-ai..."
 # Detect GitHub username from git config
 current_email=$(git config user.email)
 if [ -z "$current_email" ]; then
-    echo "❌ Git user email not configured. Run: git config user.email 'your@email.com'"
+    echo "❌ Git user email not configured. Run: git config user.email 'julioresende07@gmail.com'"
     exit 1
 fi
 

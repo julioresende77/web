@@ -52,13 +52,19 @@ apps/web/
 │   ├── create-post.ts    # Post creation flow
 │   ├── create-ads.ts     # Ads creation flow
 │   └── ai-seller.ts      # AI seller flow
+├── app/                   # Next.js App Router
+│   ├── page.tsx          # Home (landing/auth/chat)
+│   ├── termos/           # Terms of Service page
+│   ├── checkout/         # Subscription checkout
+│   └── admin/            # Admin dashboard (restricted)
 ├── components/            # React components
 │   ├── ui/               # UI components
 │   │   ├── ChatBubble.tsx    # Message bubbles with avatars
 │   │   ├── ChatInput.tsx     # Modern input with send button
 │   │   └── LoadingBubble.tsx # Typing indicator
+│   ├── LandingPage.tsx   # Marketing landing with pricing
 │   ├── ChatBox.tsx       # Main chat with flow selector
-│   ├── Auth.tsx          # Google OAuth login page
+│   ├── Auth.tsx          # Login/Register with tabs
 │   └── Navbar.tsx        # Top navigation with user menu
 ├── hooks/                # Custom React hooks
 │   └── useUser.ts        # Supabase auth user hook
@@ -79,6 +85,47 @@ The app uses a declarative flow system:
 
 Flow types: `"product"`, `"post"`, `"ads"`, `"seller"`
 
+## Subscription System
+
+The app has a complete subscription system with 3 plans:
+
+### Plans
+- **Mensal** - R$ 97/mês (full access)
+- **Semestral** - R$ 77/mês (20% OFF, billed every 6 months)
+- **Anual** - R$ 57/mês (40% OFF, billed yearly)
+
+### User Flow
+1. Landing page (`/`) shows pricing for non-authenticated users
+2. User clicks "Assinar" → Google OAuth → Checkout page
+3. Checkout page (`/checkout?plan=xxx`) processes subscription
+4. User profile gets marked as PRO in Supabase
+5. Access to chat features unlocked
+
+### Admin Dashboard
+- Access: `/admin`
+- Only accessible by `julioresende07@gmail.com`
+- Features:
+  - View all users (PRO and free)
+  - Toggle PRO status manually
+  - See statistics (total, PRO by plan type)
+  - Manage subscriptions
+
+### Database Schema (Supabase)
+
+```sql
+-- profiles table (extends auth.users)
+create table profiles (
+  id uuid references auth.users primary key,
+  email text,
+  name text,
+  avatar_url text,
+  is_pro boolean default false,
+  pro_until timestamp,
+  plan_type text, -- 'monthly', 'semester', 'yearly'
+  created_at timestamp default now()
+);
+```
+
 ## Design System
 
 The app uses a modern dark theme with:
@@ -94,12 +141,21 @@ The app uses a modern dark theme with:
 
 ### Authentication Flow
 
-1. User visits `/` - sees beautiful login page with Google button
-2. After Google OAuth via Supabase, user is redirected back
-3. `useUser` hook detects authenticated user
-4. Navbar shows user avatar and dropdown menu with logout
-5. ChatBox displays flow selector (4 options)
+1. User visits `/` - sees LandingPage with pricing plans
+2. User clicks "Assinar" or "Entrar" → Google OAuth
+3. After auth, redirects to checkout (if came from pricing) or home
+4. For non-subscribers: prompted to subscribe to access chat
+5. For subscribers: ChatBox displays flow selector (4 options)
 6. User selects flow → step-by-step questionnaire → AI generates result
+
+### Routes
+
+| Route | Access | Description |
+|-------|--------|-------------|
+| `/` | Public | Landing page with pricing or chat (if subscribed) |
+| `/termos` | Public | Terms of Service page |
+| `/checkout` | Auth only | Subscription checkout with plan selection |
+| `/admin` | Admin only | Dashboard for managing users and subscriptions |
 
 ### AI Integration
 

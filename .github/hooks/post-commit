@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Post-commit hook to automatically push to GitHub after each commit
+# This keeps the remote repository in sync with local changes
+#
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check if remote origin exists
+if ! git remote get-url origin > /dev/null 2>&1; then
+    echo "${YELLOW}⚠️  No remote origin configured. Skipping auto-sync.${NC}"
+    exit 0
+fi
+
+# Get current branch
+BRANCH=$(git symbolic-ref --short HEAD)
+
+echo "${GREEN}🔄 Auto-syncing to GitHub (branch: $BRANCH)...${NC}"
+
+# Push to remote
+git push origin "$BRANCH" 2>&1
+
+if [ $? -eq 0 ]; then
+    echo "${GREEN}✅ Successfully synced to GitHub!${NC}"
+else
+    echo "${YELLOW}⚠️  Failed to sync to GitHub. You may need to pull first or resolve conflicts.${NC}"
+fi

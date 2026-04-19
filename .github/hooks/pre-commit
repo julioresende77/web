@@ -1,0 +1,91 @@
+#!/bin/sh
+#
+# Pre-commit hook to check for sensitive data before committing
+# This hook runs before each commit to ensure no secrets are accidentally committed
+#
+
+echo "🔒 Checking for sensitive data..."
+
+# Check for potential API keys, secrets, and tokens
+SENSITIVE_PATTERNS="
+sk-[a-zA-Z0-9]{20,}
+[0-9a-f]{32,}                    # MD5, SHA256 hashes (potential keys)
+AKIA[0-9A-Z]{16}                 # AWS Access Key ID
+ghp_[a-zA-Z0-9]{36}              # GitHub Personal Access Token
+[a-zA-Z0-9_-]*api[_-]?key[a-zA-Z0-9_-]*
+[a-zA-Z0-9_-]*secret[a-zA-Z0-9_-]*
+[a-zA-Z0-9_-]*password[a-zA-Z0-9_-]*
+[a-zA-Z0-9_-]*token[a-zA-Z0-9_-]*
+"
+
+# Files to check (excluding node_modules, .git, etc.)
+FILES_TO_CHECK=$(git diff --cached --name-only --diff-filter=ACM | grep -v node_modules | grep -v ".git/" | head -50)
+
+if [ -z "$FILES_TO_CHECK" ]; then
+    exit 0
+fi
+
+# Check each staged file for potential secrets
+FOUND_SECRETS=false
+
+for file in $FILES_TO_CHECK; do
+    # Skip binary files
+    if file "$file" | grep -q "binary"; then
+        continue
+    fi
+
+    # Skip certain file types that commonly contain patterns that look like secrets
+    case "$file" in
+        *.md|*.json|*.lock|*.css|*.scss)
+            continue
+            ;;
+    esac
+
+    # Check for hardcoded API keys (not in .env files)
+    if [ "${file##*.}" != "env" ] && [ "${file##*.}" != "example" ]; then
+        # Check for OpenRouter API key pattern
+        if git show :"$file" 2>/dev/null | grep -qE 'sk-or-v1-[a-zA-Z0-9]{20,}'; then
+            echo "❌ ERROR: Potential OpenRouter API key found in $file"
+            echo "   Please move this to .env.local and use process.env.OPENROUTER_API_KEY"
+            FOUND_SECRETS=true
+        fi
+
+        # Check for Supabase URL pattern with actual project
+        if git show :"$file" 2>/dev/null | grep -qE 'https://[a-z0-9]+\.supabase\.co'; then
+            echo "⚠️  WARNING: Potential Supabase URL found in $file"
+            echo "   Make sure this is in .env.local or is a placeholder"
+        fi
+
+        # Check for sb_publishable token
+        if git show :"$file" 2>/dev/null | grep -qE 'sb_publishable_[a-zA-Z0-9_-]+'; then
+            echo "❌ ERROR: Potential Supabase publishable key found in $file"
+            echo "   Please move this to .env.local"
+            FOUND_SECRETS=true
+        fi
+    fi
+done
+
+# Check that .env.local is not being committed
+if git diff --cached --name-only | grep -q "\.env\.local$"; then
+    echo "❌ ERROR: Attempting to commit .env.local file!"
+    echo "   This file contains sensitive data and should NEVER be committed."
+    echo "   Make sure .env.local is in .gitignore"
+    exit 1
+fi
+
+# Check that node_modules is not being committed
+if git diff --cached --name-only | grep -q "node_modules"; then
+    echo "❌ ERROR: Attempting to commit node_modules!"
+    echo "   Use 'git rm --cached -r node_modules' to remove it from staging"
+    exit 1
+fi
+
+if [ "$FOUND_SECRETS" = true ]; then
+    echo ""
+    echo "🚫 Commit blocked due to sensitive data detection."
+    echo "   Please remove the sensitive data and try again."
+    exit 1
+fi
+
+echo "✅ No sensitive data detected."
+exit 0

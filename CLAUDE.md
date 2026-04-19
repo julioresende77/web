@@ -53,9 +53,13 @@ apps/web/
 │   ├── create-ads.ts     # Ads creation flow
 │   └── ai-seller.ts      # AI seller flow
 ├── components/            # React components
-│   ├── ui/               # UI components (ChatBubble, ChatInput, LoadingBubble)
-│   ├── ChatBox.tsx       # Main chat interface
-│   └── Auth.tsx          # Authentication component
+│   ├── ui/               # UI components
+│   │   ├── ChatBubble.tsx    # Message bubbles with avatars
+│   │   ├── ChatInput.tsx     # Modern input with send button
+│   │   └── LoadingBubble.tsx # Typing indicator
+│   ├── ChatBox.tsx       # Main chat with flow selector
+│   ├── Auth.tsx          # Google OAuth login page
+│   └── Navbar.tsx        # Top navigation with user menu
 ├── hooks/                # Custom React hooks
 │   └── useUser.ts        # Supabase auth user hook
 └── lib/                  # Shared libraries
@@ -74,6 +78,28 @@ The app uses a declarative flow system:
 5. **API Route** (`app/api/chat/route.ts`) handles HTTP requests
 
 Flow types: `"product"`, `"post"`, `"ads"`, `"seller"`
+
+## Design System
+
+The app uses a modern dark theme with:
+
+- **Colors**: Dark background (`#0f0a1a`) with indigo/purple/pink gradient accents
+- **Glassmorphism**: `glass` and `glass-strong` CSS classes for frosted glass effects
+- **Animations**: `animate-fade-in`, `animate-slide-in`, `animate-float` for smooth transitions
+- **Components**: 
+  - `.btn` - Button base class with variants: `.btn-primary`, `.btn-secondary`, `.btn-google`
+  - `.card` - Card containers with hover effects
+  - `.input` - Styled form inputs with focus states
+- **Icons**: Lucide React (`lucide-react` package)
+
+### Authentication Flow
+
+1. User visits `/` - sees beautiful login page with Google button
+2. After Google OAuth via Supabase, user is redirected back
+3. `useUser` hook detects authenticated user
+4. Navbar shows user avatar and dropdown menu with logout
+5. ChatBox displays flow selector (4 options)
+6. User selects flow → step-by-step questionnaire → AI generates result
 
 ### AI Integration
 

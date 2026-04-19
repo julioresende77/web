@@ -101,6 +101,85 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY= # Supabase anonymous key
 
 - `@/*` maps to the project root (e.g., `@/components/Button`)
 
+## GitHub Integration & Auto-Sync
+
+This repository is configured with automatic GitHub synchronization:
+
+### Setup (First Time)
+
+1. **Install GitHub CLI** (if not already installed):
+   - Windows: `winget install --id GitHub.cli`
+   - macOS: `brew install gh`
+
+2. **Run the setup script**:
+   ```bash
+   ./scripts/setup-github.sh
+   ```
+
+3. **Or manually configure**:
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/restech-ai.git
+   git push -u origin master
+   ```
+
+### Auto-Sync Behavior
+
+- Every commit automatically triggers a push to GitHub (via post-commit hook)
+- No manual `git push` required after the initial setup
+
+### Manual Sync (if needed)
+
+```bash
+git push origin master
+```
+
+## Security & Sensitive Data Protection
+
+⚠️ **CRITICAL: Never commit sensitive data!**
+
+### Protected Files (.gitignore)
+
+- `.env` - Environment variables
+- `.env.local` - Local environment (contains API keys)
+- `.env.*.local` - All local env files
+- `node_modules/` - Dependencies
+
+### Pre-Commit Security Hook
+
+The repository includes a pre-commit hook that automatically:
+- ✅ Scans for API keys (OpenRouter, Supabase patterns)
+- ✅ Blocks commits containing `.env.local`
+- ✅ Blocks commits containing `node_modules`
+- ✅ Warns about potential secrets in source code
+
+If the hook blocks your commit, move sensitive data to `.env.local` and use environment variables.
+
+### Environment Variables Setup
+
+1. **Copy the template** (already done):
+   ```bash
+   cp apps/web/.env.example apps/web/.env.local
+   ```
+
+2. **Fill in your actual keys** in `apps/web/.env.local`:
+   ```bash
+   OPENROUTER_API_KEY=your_actual_key_here
+   NEXT_PUBLIC_SUPABASE_URL=your_actual_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_actual_key
+   ```
+
+3. **Verify .env.local is NOT tracked**:
+   ```bash
+   git status  # Should not show .env.local
+   ```
+
+### Security Checklist Before Committing
+
+- [ ] No API keys in source code
+- [ ] No passwords or tokens in any `.ts`, `.tsx`, `.js` files
+- [ ] `.env.local` contains all secrets
+- [ ] `git status` does not show sensitive files
+
 ## Key Files to Understand
 
 1. `features/flow/flow.types.ts` - Type definitions for the flow system
